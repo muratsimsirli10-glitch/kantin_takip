@@ -63,7 +63,6 @@ class AnaSayfa extends StatefulWidget {
 
 class _AnaSayfaState extends State<AnaSayfa> {
   final TextEditingController _kisiController = TextEditingController();
-  String _seciliKisi = '';
 
   Map<String, double> _urunler = {
     'GOFRET': 15.0,
@@ -75,14 +74,19 @@ class _AnaSayfaState extends State<AnaSayfa> {
     'ZEYTİNLİ': 24.0,
     'ÇOKONAT': 32.0,
     'BROWNİ': 25.0,
+    'HALLEY': 30.0,
     'DİDO': 25.0,
+    'ALBENİ': 18.0,
     'SADE SODA': 12.0,
+    'MEYVELİ SODA': 13.0,
     'GAZOZ': 20.0,
+    'PEPSİ 2.5 LT': 82.0,
     'NESKAFE': 10.0,
+    'MEYVE SUYU': 14.0,
   };
 
   List<String> _kayitliKisiler = [];
-  final List<Map<String, dynamic>> _sepet = [];
+  final Map<String, int> _secilenUrunAdetleri = {};
   List<Map<String, dynamic>> _fisler = [];
 
   @override
@@ -96,8 +100,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
     final urunlerJson = prefs.getString('kantin_urunler');
     if (urunlerJson != null) {
-      final Map<String, dynamic> decoded = jsonDecode(urunlerJson);
-      _urunler = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(urunlerJson);
+        _urunler = decoded.map((k, v) => MapEntry(k, (v as num).toDouble()));
+      } catch (_) {}
     }
 
     final kisilerList = prefs.getStringList('kantin_kisiler');
@@ -107,8 +113,10 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
     final fislerJson = prefs.getString('kantin_fisler');
     if (fislerJson != null) {
-      final List<dynamic> decoded = jsonDecode(fislerJson);
-      _fisler = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      try {
+        final List<dynamic> decoded = jsonDecode(fislerJson);
+        _fisler = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      } catch (_) {}
     }
 
     setState(() {});
@@ -135,58 +143,80 @@ class _AnaSayfaState extends State<AnaSayfa> {
   void _kisiSil(String kisi) {
     setState(() {
       _kayitliKisiler.remove(kisi);
-      if (_seciliKisi == kisi) {
-        _seciliKisi = '';
+      if (_kisiController.text.trim().toUpperCase() == kisi) {
         _kisiController.clear();
       }
     });
     _verileriKaydet();
   }
 
-  void _sepeteEkle(String urunAdi, double fiyat) {
+  void _uruneTiklandi(String urun) {
     setState(() {
-      final index = _sepet.indexWhere((item) => item['ad'] == urunAdi);
-      if (index != -1) {
-        _sepet[index]['adet'] += 1;
+      _secilenUrunAdetleri[urun] = (_secilenUrunAdetleri[urun] ?? 0) + 1;
+    });
+  }
+
+  void _adetAzalt(String urun) {
+    setState(() {
+      if ((_secilenUrunAdetleri[urun] ?? 0) > 1) {
+        _secilenUrunAdetleri[urun] = _secilenUrunAdetleri[urun]! - 1;
       } else {
-        _sepet.add({
-          'ad': urunAdi,
-          'fiyat': fiyat,
-          'adet': 1,
-        });
+        _secilenUrunAdetleri.remove(urun);
       }
     });
   }
 
-  double get _sepetToplami {
-    double toplam = 0;
-    for (var item in _sepet) {
-      toplam += (item['fiyat'] as double) * (item['adet'] as int);
-    }
-    return toplam;
+  void _adetArtir(String urun) {
+    setState(() {
+      _secilenUrunAdetleri[urun] = (_secilenUrunAdetleri[urun] ?? 0) + 1;
+    });
   }
 
-  void _satisiTamamla() {
-    // Hem değişkenden hem controller'dan kontrol ediyoruz
-    String kisi = _seciliKisi.trim().toUpperCase();
-    if (kisi.isEmpty) {
-      kisi = _kisiController.text.trim().toUpperCase();
-    }
+  // YANLIŞ SEÇİLEN ÜRÜNÜ LİSTEDEN TAMAMEN KALDIRIR
+  void _urunSil(String urun) {
+    setState(() {
+      _secilenUrunAdetleri.remove(urun);
+    });
+  }
+
+  // YANLIŞ SEÇİLEN ÜRÜNÜ, ADEDİNİ KORUYARAK DOĞRU ÜRÜNLE DEĞİŞTİRİR
+  void _urunDegistir(String eskiUrun, String yeniUrun) {
+    if (eskiUrun == yeniUrun) return;
+    setState(() {
+      final adet = _secilenUrunAdetleri[eskiUrun] ?? 1;
+      _secilenUrunAdetleri.remove(eskiUrun);
+      _secilenUrunAdetleri[yeniUrun] =
+          (_secilenUrunAdetleri[yeniUrun] ?? 0) + adet;
+    });
+  }
+
+  double get _toplamTutar {
+    double top = 0;
+    _secilenUrunAdetleri.forEach((urun, adet) {
+      final f = _urunler[urun] ?? 0;
+      top += f * adet;
+    });
+    return top;
+  }
+
+  void _satisiKaydet() {
+    // DOĞRUDAN CONTROLLER'DAN ALIYORUZ: ASLA BOŞ ALGILAMAZ!
+    final kisi = _kisiController.text.trim().toUpperCase();
 
     if (kisi.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Lütfen bir kişi adı seçin veya yazın!'),
+          content: Text('Lütfen bir isim yazın!'),
           backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    if (_sepet.isEmpty) {
+    if (_secilenUrunAdetleri.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Sepet boş! Lütfen ürün seçin.'),
+          content: Text('Lütfen en az bir ürün seçin!'),
           backgroundColor: Colors.red,
         ),
       );
@@ -199,24 +229,26 @@ class _AnaSayfaState extends State<AnaSayfa> {
     final tarihStr =
         "${now.day.toString().padLeft(2, '0')}.${now.month.toString().padLeft(2, '0')} - ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}";
 
+    final List<Map<String, dynamic>> urunlerDetay = [];
+    _secilenUrunAdetleri.forEach((urun, adet) {
+      urunlerDetay.add({
+        'ad': urun,
+        'adet': adet,
+        'fiyat': _urunler[urun] ?? 0.0,
+      });
+    });
+
     final yeniFis = {
       'id': DateTime.now().millisecondsSinceEpoch.toString(),
       'kisi': kisi,
       'tarih': tarihStr,
-      'urunler': _sepet
-          .map((item) => {
-                'ad': item['ad'],
-                'fiyat': item['fiyat'],
-                'adet': item['adet'],
-              })
-          .toList(),
-      'toplam': _sepetToplami,
+      'urunler': urunlerDetay,
+      'toplam': _toplamTutar,
     };
 
     setState(() {
       _fisler.insert(0, yeniFis);
-      _sepet.clear();
-      _seciliKisi = '';
+      _secilenUrunAdetleri.clear();
       _kisiController.clear();
     });
 
@@ -224,7 +256,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$kisi için satış başarıyla kaydedildi.'),
+        content: Text('$kisi için satış kaydedildi!'),
         backgroundColor: Colors.green,
       ),
     );
@@ -296,6 +328,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
             onPressed: () {
               setState(() {
                 _urunler.remove(urunAdi);
+                _secilenUrunAdetleri.remove(urunAdi);
               });
               _verileriKaydet();
               Navigator.pop(ctx);
@@ -328,22 +361,26 @@ class _AnaSayfaState extends State<AnaSayfa> {
         title: const Text('Kantin Defteri'),
         actions: [
           IconButton(
-            icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode),
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: Icon(widget.isDark ? Icons.light_mode : Icons.dark_mode_outlined),
             onPressed: widget.onTemaDegistir,
           ),
           IconButton(
             icon: const Icon(Icons.receipt_long),
-            tooltip: 'Kişi Dökümleri ve Hesaplar',
+            tooltip: 'Ay Sonu Muhasebe & Dökümler',
             onPressed: () async {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => KisiListesiDokumSayfasi(
+                  builder: (context) => AySonuMuhasebeSayfasi(
                     fisler: _fisler,
                     urunler: _urunler,
-                    onFislerGuncellendi: (guncelFisler) {
+                    onFislerGuncellendi: (yeniFisler) {
                       setState(() {
-                        _fisler = List<Map<String, dynamic>>.from(guncelFisler);
+                        _fisler = List<Map<String, dynamic>>.from(yeniFisler);
                       });
                       _verileriKaydet();
                     },
@@ -409,344 +446,340 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 setState(() {});
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.inventory_2),
-              title: const Text('Ürün Listesi'),
-              subtitle: Text('${_urunler.length} ürün'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => UrunlerSayfasi(
-                      urunler: _urunler,
-                      onUrunDuzenle: _urunGuncelleSilDiyalogu,
-                    ),
-                  ),
-                );
-              },
-            ),
           ],
         ),
       ),
-      body: Column(
-        children: [
-          // KİŞİ SEÇİMİ VE BUTONLAR
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceVariant
-                  .withOpacity(0.35),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _kisiController,
-                        textCapitalization: TextCapitalization.characters,
-                        decoration: InputDecoration(
-                          labelText: 'Kişi Adı',
-                          hintText: 'Örn: ALİŞAN',
-                          prefixIcon: const Icon(Icons.person),
-                          suffixIcon: _kisiController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _kisiController.clear();
-                                      _seciliKisi = '';
-                                    });
-                                  },
-                                )
-                              : null,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                        ),
-                        onChanged: (val) {
-                          setState(() {
-                            _seciliKisi = val.trim().toUpperCase();
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton.filledTonal(
-                      tooltip: 'Yeni Kişi Ekle',
-                      onPressed: () {
-                        final c = TextEditingController();
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('Yeni Kişi Ekle'),
-                            content: TextField(
-                              controller: c,
-                              textCapitalization: TextCapitalization.characters,
-                              decoration: const InputDecoration(
-                                labelText: 'Kişi Adı',
-                                hintText: 'Örn: MEHMET',
-                              ),
-                              autofocus: true,
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text('İptal'),
-                              ),
-                              ElevatedButton(
-                                onPressed: () {
-                                  final isim = c.text.trim().toUpperCase();
-                                  if (isim.isNotEmpty) {
-                                    _kisiEkle(isim);
-                                    setState(() {
-                                      _seciliKisi = isim;
-                                      _kisiController.text = isim;
-                                    });
-                                    Navigator.pop(ctx);
-                                  }
-                                },
-                                child: const Text('Ekle'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.person_add),
-                    ),
-                  ],
-                ),
-
-                // KİŞİ ÇİPLERİ / BUTONLARI
-                if (_kayitliKisiler.isNotEmpty) ...[
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 38,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _kayitliKisiler.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
-                      itemBuilder: (context, index) {
-                        final kisi = _kayitliKisiler[index];
-                        final seciliMi = (_seciliKisi == kisi) ||
-                            (_kisiController.text.trim().toUpperCase() == kisi);
-
-                        return ChoiceChip(
-                          avatar: Icon(
-                            Icons.person,
-                            size: 16,
-                            color: seciliMi
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : Theme.of(context).colorScheme.primary,
-                          ),
-                          label: Text(
-                            kisi,
-                            style: TextStyle(
-                              fontWeight:
-                                  seciliMi ? FontWeight.bold : FontWeight.w500,
-                              color: seciliMi
-                                  ? Theme.of(context).colorScheme.onPrimary
-                                  : null,
-                            ),
-                          ),
-                          selected: seciliMi,
-                          selectedColor: Theme.of(context).colorScheme.primary,
-                          onSelected: (selected) {
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // KİŞİ ADI GİRİŞ ALANI
+              TextField(
+                controller: _kisiController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  labelText: 'Kişi Adı',
+                  prefixIcon: const Icon(Icons.person_outline),
+                  suffixIcon: _kisiController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
                             setState(() {
-                              if (selected) {
-                                _seciliKisi = kisi;
-                                _kisiController.text = kisi;
-                              } else {
-                                _seciliKisi = '';
-                                _kisiController.clear();
-                              }
+                              _kisiController.clear();
                             });
                           },
-                        );
-                      },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+
+              // KİŞİ BUTONLARI (KAYITLI KİŞİLER)
+              if (_kayitliKisiler.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  height: 36,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _kayitliKisiler.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, idx) {
+                      final isim = _kayitliKisiler[idx];
+                      final secili =
+                          _kisiController.text.trim().toUpperCase() == isim;
+                      return ActionChip(
+                        label: Text(
+                          isim,
+                          style: TextStyle(
+                            fontWeight:
+                                secili ? FontWeight.bold : FontWeight.normal,
+                            color: secili ? Colors.white : null,
+                          ),
+                        ),
+                        backgroundColor: secili ? Colors.teal : null,
+                        onPressed: () {
+                          setState(() {
+                            _kisiController.text = isim;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 16),
+
+              // ÜRÜNLER BAŞLIĞI & BUTONLAR
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Ürünler (Fiyat için basılı tutun):',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  InkWell(
+                    onTap: _yeniUrunDiyalogu,
+                    child: const Row(
+                      children: [
+                        Icon(Icons.add, color: Colors.teal, size: 18),
+                        Text(
+                          'Ürün Ekle',
+                          style: TextStyle(
+                            color: Colors.teal,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
+              ),
+              const SizedBox(height: 10),
 
-          // ÜRÜNLER
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Ürünler (Fiyat için basılı tutun):',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                ),
-                TextButton.icon(
-                  onPressed: _yeniUrunDiyalogu,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Ürün Ekle'),
-                ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Wrap(
+              // ÜRÜN ÇİPLERİ / KARTLARI
+              Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: _urunler.entries.map((entry) {
+                  final urunAdi = entry.key;
+                  final fiyat = entry.value;
+                  final seciliAdet = _secilenUrunAdetleri[urunAdi] ?? 0;
+                  final seciliMi = seciliAdet > 0;
+
                   return InkWell(
                     borderRadius: BorderRadius.circular(10),
-                    onTap: () => _sepeteEkle(entry.key, entry.value),
+                    onTap: () => _uruneTiklandi(urunAdi),
                     onLongPress: () =>
-                        _urunGuncelleSilDiyalogu(entry.key, entry.value),
+                        _urunGuncelleSilDiyalogu(urunAdi, fiyat),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
+                          horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
+                        color: seciliMi
+                            ? Colors.teal.shade200.withOpacity(0.4)
+                            : Colors.grey.shade100,
                         border: Border.all(
-                          color: Theme.of(context).colorScheme.outlineVariant,
+                          color: seciliMi
+                              ? Colors.teal
+                              : Colors.grey.shade400,
                         ),
                         borderRadius: BorderRadius.circular(10),
-                        color: Theme.of(context).colorScheme.surface,
                       ),
-                      child: Text(
-                        '${entry.key} (${entry.value.toStringAsFixed(0)} ₺)',
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (seciliMi) ...[
+                            CircleAvatar(
+                              radius: 9,
+                              backgroundColor: Colors.teal,
+                              child: Text(
+                                '$seciliAdet',
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 10),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            '$urunAdi (${fiyat.toStringAsFixed(0)} ₺)',
+                            style: const TextStyle(
+                                fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }).toList(),
               ),
-            ),
-          ),
 
-          // SEPET
-          if (_sepet.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .surfaceVariant
-                    .withOpacity(0.5),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 4,
-                    offset: Offset(0, -2),
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Sepet (${_sepet.fold<int>(0, (prev, e) => prev + (e['adet'] as int))} Adet)',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      TextButton(
-                        onPressed: () => setState(() => _sepet.clear()),
-                        child: const Text('Temizle',
-                            style: TextStyle(color: Colors.red)),
-                      ),
-                    ],
-                  ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxHeight: 120),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _sepet.length,
-                      itemBuilder: (context, index) {
-                        final item = _sepet[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('${item['ad']} x${item['adet']}'),
-                              Text(
-                                '${((item['fiyat'] as double) * (item['adet'] as int)).toStringAsFixed(0)} ₺',
+              const SizedBox(height: 20),
+
+              // SEÇİLEN ÜRÜNLER LİSTESİ
+              if (_secilenUrunAdetleri.isNotEmpty) ...[
+                const Text(
+                  'Seçilen Ürünler:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                ..._secilenUrunAdetleri.entries.map((e) {
+                  final urun = e.key;
+                  final adet = e.value;
+                  final fiyat = _urunler[urun] ?? 0.0;
+                  final satirToplami = fiyat * adet;
+
+                  // İKİ SATIRLI KART: 1) ürün adı + satır toplamı
+                  //                   2) adet kontrolleri + değiştir/sil
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. SATIR: Ürün adı + satır toplamı
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '$urun (${fiyat.toStringAsFixed(0)} ₺)',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold),
+                                    fontSize: 14, fontWeight: FontWeight.w500),
                               ),
-                            ],
-                          ),
-                        );
-                      },
+                            ),
+                            Text(
+                              '${satirToplami.toStringAsFixed(0)} ₺',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        // 2. SATIR: Adet kontrolleri + Değiştir/Sil
+                        Row(
+                          children: [
+                            InkWell(
+                              onTap: () => _adetAzalt(urun),
+                              child: const Icon(Icons.remove_circle_outline,
+                                  color: Colors.red, size: 22),
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: Text(
+                                '$adet',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => _adetArtir(urun),
+                              child: const Icon(Icons.add_circle_outline,
+                                  color: Colors.teal, size: 22),
+                            ),
+                            const Spacer(),
+                            // YANLIŞ ÜRÜNÜ DOĞRUSUYLA DEĞİŞTİR
+                            InkWell(
+                              onTap: () async {
+                                final yeniUrun = await showMenu<String>(
+                                  context: context,
+                                  position: RelativeRect.fromLTRB(
+                                      1000, 100, 0, 0),
+                                  items: _urunler.keys
+                                      .where((p) => p != urun)
+                                      .map((prod) => PopupMenuItem<String>(
+                                            value: prod,
+                                            child: Text(
+                                                '$prod (${_urunler[prod]?.toStringAsFixed(0)} ₺)'),
+                                          ))
+                                      .toList(),
+                                );
+                                if (yeniUrun != null) {
+                                  _urunDegistir(urun, yeniUrun);
+                                }
+                              },
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6),
+                                child: Icon(Icons.swap_horiz,
+                                    color: Colors.teal, size: 20),
+                              ),
+                            ),
+                            // ÜRÜNÜ KOMPLE SİL
+                            InkWell(
+                              onTap: () => _urunSil(urun),
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6),
+                                child: Icon(Icons.delete_outline,
+                                    color: Colors.red, size: 20),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 8),
+
+                // KAYDET BUTONU
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal.shade700,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    onPressed: _satisiKaydet,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: Text(
+                      'KAYDET (Toplam: ${_toplamTutar.toStringAsFixed(0)} TL)',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 15),
                     ),
                   ),
-                  const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Toplam Tutar:',
-                              style: TextStyle(fontSize: 12)),
-                          Text(
-                            '${_sepetToplami.toStringAsFixed(0)} ₺',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal,
-                            ),
-                          ),
-                        ],
-                      ),
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primary,
-                          foregroundColor:
-                              Theme.of(context).colorScheme.onPrimary,
-                        ),
-                        onPressed: _satisiTamamla,
-                        icon: const Icon(Icons.check),
-                        label: const Text(
-                          'SATIŞI TAMAMLA',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              // SON KAYDEDİLENLER BÖLÜMÜ
+              const Text(
+                'Son Kaydedilenler',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
-            ),
-        ],
+              const SizedBox(height: 8),
+              if (_fisler.isEmpty)
+                const Text('Henüz kaydedilmiş bir fiş yok.')
+              else
+                ..._fisler.take(3).map((f) {
+                  final List uList = f['urunler'] ?? [];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.receipt, color: Colors.teal),
+                      title: Text(
+                        "${f['kisi']} - ${(f['toplam'] as num).toStringAsFixed(0)} TL",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text(
+                        "${f['tarih']} (${uList.length} çeşit ürün)",
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 // -------------------------------------------------------------
-// KİŞİ BAZLI DÖKÜM LİSTESİ SAYFASI
+// AY SONU MUHASEBE SAYFASI
 // -------------------------------------------------------------
-class KisiListesiDokumSayfasi extends StatefulWidget {
+class AySonuMuhasebeSayfasi extends StatefulWidget {
   final List<Map<String, dynamic>> fisler;
   final Map<String, double> urunler;
   final Function(List<Map<String, dynamic>>) onFislerGuncellendi;
   final VoidCallback onTemizle;
 
-  const KisiListesiDokumSayfasi({
+  const AySonuMuhasebeSayfasi({
     super.key,
     required this.fisler,
     required this.urunler,
@@ -755,11 +788,10 @@ class KisiListesiDokumSayfasi extends StatefulWidget {
   });
 
   @override
-  State<KisiListesiDokumSayfasi> createState() =>
-      _KisiListesiDokumSayfasiState();
+  State<AySonuMuhasebeSayfasi> createState() => _AySonuMuhasebeSayfasiState();
 }
 
-class _KisiListesiDokumSayfasiState extends State<KisiListesiDokumSayfasi> {
+class _AySonuMuhasebeSayfasiState extends State<AySonuMuhasebeSayfasi> {
   Map<String, double> get _kisiToplamlari {
     final Map<String, double> map = {};
     for (var f in widget.fisler) {
@@ -779,19 +811,19 @@ class _KisiListesiDokumSayfasiState extends State<KisiListesiDokumSayfasi> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hesap Dökümleri'),
+        title: const Text('Ay Sonu Muhasebe'),
         actions: [
           if (widget.fisler.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep),
-              tooltip: 'Tüm Dönemi Sıfırla (Ay Başı)',
+              tooltip: 'Tüm Dönemi Sıfırla',
               onPressed: () {
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
                     title: const Text('Tüm Dönemi Sıfırla'),
                     content: const Text(
-                      'Tüm satış ve borç geçmişi silinecektir. Yeni döneme başlamak için emin misiniz?',
+                      'Tüm satışlar silinecektir. Emin misiniz?',
                     ),
                     actions: [
                       TextButton(
@@ -817,30 +849,6 @@ class _KisiListesiDokumSayfasiState extends State<KisiListesiDokumSayfasi> {
           ? const Center(child: Text('Henüz satış kaydı bulunmuyor.'))
           : Column(
               children: [
-                Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  color: Colors.teal.withOpacity(0.12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Dönem Toplam Satış:',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '${genelToplam.toStringAsFixed(0)} TL',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
                 Expanded(
                   child: ListView.separated(
                     itemCount: kisiler.length,
@@ -849,35 +857,33 @@ class _KisiListesiDokumSayfasiState extends State<KisiListesiDokumSayfasi> {
                       final kisi = kisiler[index];
                       final borc = toplamlar[kisi] ?? 0;
                       return ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.person),
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.teal.shade100,
+                          foregroundColor: Colors.teal.shade900,
+                          child: Text('${index + 1}'),
                         ),
                         title: Text(
                           kisi,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold, fontSize: 16),
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              '${borc.toStringAsFixed(0)} TL',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(Icons.arrow_forward_ios,
-                                size: 14, color: Colors.grey),
-                          ],
+                        subtitle: const Text(
+                          'Detay dökümü gör →',
+                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                        ),
+                        trailing: Text(
+                          '${borc.toStringAsFixed(0)} TL',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal,
+                          ),
                         ),
                         onTap: () async {
                           await Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => KisiDetayDokumSayfasi(
+                              builder: (context) => DetayDokumSayfasi(
                                 kisi: kisi,
                                 fisler: widget.fisler,
                                 urunler: widget.urunler,
@@ -894,6 +900,29 @@ class _KisiListesiDokumSayfasiState extends State<KisiListesiDokumSayfasi> {
                     },
                   ),
                 ),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  color: Colors.teal.shade100.withOpacity(0.5),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'GENEL TOPLAM:',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15),
+                      ),
+                      Text(
+                        '${genelToplam.toStringAsFixed(0)} TL',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.teal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
     );
@@ -901,15 +930,15 @@ class _KisiListesiDokumSayfasiState extends State<KisiListesiDokumSayfasi> {
 }
 
 // -------------------------------------------------------------
-// BİR KİŞİNİN AYRINTILI DÖKÜM SAYFASI (FİŞLER & DÜZENLE/SİL)
+// KİŞİ DETAY DÖKÜM SAYFASI (ÜRÜN DEĞİŞTİR / ADET / SİL)
 // -------------------------------------------------------------
-class KisiDetayDokumSayfasi extends StatefulWidget {
+class DetayDokumSayfasi extends StatefulWidget {
   final String kisi;
   final List<Map<String, dynamic>> fisler;
   final Map<String, double> urunler;
   final Function(List<Map<String, dynamic>>) onFislerGuncellendi;
 
-  const KisiDetayDokumSayfasi({
+  const DetayDokumSayfasi({
     super.key,
     required this.kisi,
     required this.fisler,
@@ -918,22 +947,20 @@ class KisiDetayDokumSayfasi extends StatefulWidget {
   });
 
   @override
-  State<KisiDetayDokumSayfasi> createState() => _KisiDetayDokumSayfasiState();
+  State<DetayDokumSayfasi> createState() => _DetayDokumSayfasiState();
 }
 
-class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
+class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
   List<Map<String, dynamic>> get _kisiFisleri {
-    return widget.fisler
-        .where((f) => f['kisi'] == widget.kisi)
-        .toList();
+    return widget.fisler.where((f) => f['kisi'] == widget.kisi).toList();
   }
 
-  double get _kisiToplamBorc {
+  double get _toplamBorc {
     return _kisiFisleri.fold<double>(
         0, (prev, f) => prev + (f['toplam'] as num).toDouble());
   }
 
-  void _fisDuzenleDiyalogu(Map<String, dynamic> fis) {
+  void _fisDuzenleModal(Map<String, dynamic> fis) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -962,18 +989,17 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Fiş Düzenle (${fis['tarih']})',
+                        'Fişi Düzenle (${fis['tarih']})',
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_forever,
-                            color: Colors.red),
+                        icon: const Icon(Icons.delete_forever, color: Colors.red),
                         tooltip: 'Tüm Fişi Sil',
                         onPressed: () {
                           setState(() {
-                            widget.fisler.removeWhere(
-                                (item) => item['id'] == fis['id']);
+                            widget.fisler
+                                .removeWhere((item) => item['id'] == fis['id']);
                           });
                           widget.onFislerGuncellendi(widget.fisler);
                           Navigator.pop(ctx);
@@ -1013,7 +1039,7 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                                     ],
                                   ),
                                 ),
-                                // ADET AZALT
+                                // Adet Azalt
                                 IconButton(
                                   icon: const Icon(Icons.remove_circle_outline),
                                   onPressed: () {
@@ -1024,12 +1050,10 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                                         urunlerList.removeAt(idx);
                                       }
                                       fis['urunler'] = urunlerList;
-                                      _hesaplaVeKaydetFis(fis);
+                                      _hesaplaVeKaydet(fis);
                                     });
                                     setState(() {});
-                                    if (urunlerList.isEmpty) {
-                                      Navigator.pop(ctx);
-                                    }
+                                    if (urunlerList.isEmpty) Navigator.pop(ctx);
                                   },
                                 ),
                                 Text(
@@ -1037,32 +1061,32 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                                   style: const TextStyle(
                                       fontWeight: FontWeight.bold),
                                 ),
-                                // ADET ARTIR
+                                // Adet Artır
                                 IconButton(
                                   icon: const Icon(Icons.add_circle_outline),
                                   onPressed: () {
                                     setModalState(() {
                                       u['adet'] += 1;
                                       fis['urunler'] = urunlerList;
-                                      _hesaplaVeKaydetFis(fis);
+                                      _hesaplaVeKaydet(fis);
                                     });
                                     setState(() {});
                                   },
                                 ),
-                                // BAŞKA ÜRÜNLE DEĞİŞTİR
+                                // Başka Ürünle Değiştir
                                 PopupMenuButton<String>(
                                   icon: const Icon(Icons.swap_horiz,
                                       color: Colors.teal),
                                   tooltip: 'Ürünü Değiştir',
-                                  onSelected: (yeniUrunAdi) {
+                                  onSelected: (yeniUrun) {
                                     final yeniFiyat =
-                                        widget.urunler[yeniUrunAdi] ??
+                                        widget.urunler[yeniUrun] ??
                                             (u['fiyat'] as num).toDouble();
                                     setModalState(() {
-                                      u['ad'] = yeniUrunAdi;
+                                      u['ad'] = yeniUrun;
                                       u['fiyat'] = yeniFiyat;
                                       fis['urunler'] = urunlerList;
-                                      _hesaplaVeKaydetFis(fis);
+                                      _hesaplaVeKaydet(fis);
                                     });
                                     setState(() {});
                                   },
@@ -1071,13 +1095,12 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                                       return PopupMenuItem<String>(
                                         value: prod,
                                         child: Text(
-                                          '$prod (${widget.urunler[prod]?.toStringAsFixed(0)} ₺)',
-                                        ),
+                                            '$prod (${widget.urunler[prod]?.toStringAsFixed(0)} ₺)'),
                                       );
                                     }).toList();
                                   },
                                 ),
-                                // BU ÜRÜNÜ SİL
+                                // Ürünü Sil
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline,
                                       color: Colors.red),
@@ -1085,12 +1108,10 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                                     setModalState(() {
                                       urunlerList.removeAt(idx);
                                       fis['urunler'] = urunlerList;
-                                      _hesaplaVeKaydetFis(fis);
+                                      _hesaplaVeKaydet(fis);
                                     });
                                     setState(() {});
-                                    if (urunlerList.isEmpty) {
-                                      Navigator.pop(ctx);
-                                    }
+                                    if (urunlerList.isEmpty) Navigator.pop(ctx);
                                   },
                                 ),
                               ],
@@ -1105,7 +1126,7 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Güncel Fiş Toplamı: ${(fis['toplam'] as num).toStringAsFixed(0)} TL',
+                        'Güncel Fiş: ${(fis['toplam'] as num).toStringAsFixed(0)} TL',
                         style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
@@ -1126,17 +1147,16 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
     );
   }
 
-  void _hesaplaVeKaydetFis(Map<String, dynamic> fis) {
-    final urunlerList =
-        (fis['urunler'] as List).cast<Map<String, dynamic>>();
+  void _hesaplaVeKaydet(Map<String, dynamic> fis) {
+    final urunlerList = (fis['urunler'] as List).cast<Map<String, dynamic>>();
     if (urunlerList.isEmpty) {
       widget.fisler.removeWhere((item) => item['id'] == fis['id']);
     } else {
-      double toplam = 0;
+      double top = 0;
       for (var u in urunlerList) {
-        toplam += (u['fiyat'] as num).toDouble() * (u['adet'] as num).toInt();
+        top += (u['fiyat'] as num).toDouble() * (u['adet'] as num).toInt();
       }
-      fis['toplam'] = toplam;
+      fis['toplam'] = top;
     }
     widget.onFislerGuncellendi(widget.fisler);
   }
@@ -1154,7 +1174,7 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            color: Colors.teal.withOpacity(0.15),
+            color: Colors.teal.shade50,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1163,7 +1183,7 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  '${_kisiToplamBorc.toStringAsFixed(0)} TL',
+                  '${_toplamBorc.toStringAsFixed(0)} TL',
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -1175,7 +1195,7 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
           ),
           Expanded(
             child: fisler.isEmpty
-                ? const Center(child: Text('Bu kişiye ait kayıtlı fiş kalmadı.'))
+                ? const Center(child: Text('Bu kişiye ait fiş kalmadı.'))
                 : ListView.separated(
                     itemCount: fisler.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
@@ -1186,9 +1206,9 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
 
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor:
-                              Theme.of(context).colorScheme.primaryContainer,
-                          child: const Icon(Icons.shopping_bag_outlined),
+                          backgroundColor: Colors.teal.shade100,
+                          child: const Icon(Icons.shopping_bag_outlined,
+                              color: Colors.teal),
                         ),
                         title: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1217,12 +1237,12 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
                             IconButton(
                               icon: const Icon(Icons.edit_note,
                                   color: Colors.teal),
-                              tooltip: 'Düzenle / Sil',
-                              onPressed: () => _fisDuzenleDiyalogu(fis),
+                              tooltip: 'Düzenle / Değiştir / Sil',
+                              onPressed: () => _fisDuzenleModal(fis),
                             ),
                           ],
                         ),
-                        onTap: () => _fisDuzenleDiyalogu(fis),
+                        onTap: () => _fisDuzenleModal(fis),
                       );
                     },
                   ),
@@ -1234,7 +1254,7 @@ class _KisiDetayDokumSayfasiState extends State<KisiDetayDokumSayfasi> {
 }
 
 // -------------------------------------------------------------
-// KAYITLI KİŞİLER SAYFASI
+// KAYITLI KİŞİLER YÖNETİM SAYFASI
 // -------------------------------------------------------------
 class KisilerSayfasi extends StatefulWidget {
   final List<String> kayitliKisiler;
@@ -1298,12 +1318,7 @@ class _KisilerSayfasiState extends State<KisilerSayfasi> {
         ],
       ),
       body: widget.kayitliKisiler.isEmpty
-          ? const Center(
-              child: Text(
-                'Kayıtlı kişi bulunmuyor.\nSağ üstteki (+) butonundan ekleyebilirsiniz.',
-                textAlign: TextAlign.center,
-              ),
-            )
+          ? const Center(child: Text('Kayıtlı kişi bulunmuyor.'))
           : ListView.separated(
               itemCount: widget.kayitliKisiler.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
@@ -1323,45 +1338,6 @@ class _KisilerSayfasiState extends State<KisilerSayfasi> {
                 );
               },
             ),
-    );
-  }
-}
-
-// -------------------------------------------------------------
-// ÜRÜNLER SAYFASI
-// -------------------------------------------------------------
-class UrunlerSayfasi extends StatelessWidget {
-  final Map<String, double> urunler;
-  final Function(String, double) onUrunDuzenle;
-
-  const UrunlerSayfasi({
-    super.key,
-    required this.urunler,
-    required this.onUrunDuzenle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ürünler')),
-      body: ListView.separated(
-        itemCount: urunler.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
-        itemBuilder: (context, index) {
-          final urun = urunler.keys.elementAt(index);
-          final fiyat = urunler[urun]!;
-          return ListTile(
-            title:
-                Text(urun, style: const TextStyle(fontWeight: FontWeight.w600)),
-            trailing: Text(
-              '${fiyat.toStringAsFixed(0)} ₺',
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            onTap: () => onUrunDuzenle(urun, fiyat),
-          );
-        },
-      ),
     );
   }
 }
