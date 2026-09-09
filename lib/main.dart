@@ -6,6 +6,15 @@ void main() {
   runApp(const KantinUygulamasi());
 }
 
+// ---------------------------------------------------------------
+// SADE / MİNİMAL RENK PALETİ
+// ---------------------------------------------------------------
+const Color kInk = Color(0xFF1E1E1E); // ana koyu renk (metin / aksan)
+const Color kBorder = Color(0xFFE0E0E0); // ince çizgi rengi
+const Color kSurface = Color(0xFFF6F6F6); // hafif gri yüzey
+const Color kMuted = Color(0xFF8A8A8A); // ikincil / soluk metin-ikon
+const Color kDangerMuted = Color(0xFFC0453A); // yumuşatılmış kırmızı
+
 class KantinUygulamasi extends StatefulWidget {
   const KantinUygulamasi({super.key});
 
@@ -31,13 +40,89 @@ class _KantinUygulamasiState extends State<KantinUygulamasi> {
       themeMode: _themeMode,
       theme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.teal,
-        brightness: Brightness.light,
+        scaffoldBackgroundColor: Colors.white,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: kInk,
+          brightness: Brightness.light,
+        ).copyWith(primary: kInk, surface: Colors.white),
+        dividerColor: kBorder,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          foregroundColor: kInk,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          shape: Border(bottom: BorderSide(color: kBorder, width: 1)),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: kBorder),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            elevation: 0,
+            backgroundColor: kInk,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: false,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: kBorder),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: kBorder),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: kInk),
+          ),
+        ),
       ),
       darkTheme: ThemeData(
         useMaterial3: true,
-        colorSchemeSeed: Colors.teal,
         brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFFE0E0E0),
+          brightness: Brightness.dark,
+        ),
+        dividerColor: const Color(0xFF2A2A2A),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF121212),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
+          shape: Border(bottom: BorderSide(color: Color(0xFF2A2A2A), width: 1)),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 0,
+          color: const Color(0xFF1C1C1C),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: const BorderSide(color: Color(0xFF2A2A2A)),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            elevation: 0,
+            backgroundColor: const Color(0xFFE0E0E0),
+            foregroundColor: const Color(0xFF121212),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
       ),
       home: AnaSayfa(
         onTemaDegistir: _temaDegistir,
@@ -207,7 +292,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Lütfen bir isim yazın!'),
-          backgroundColor: Colors.red,
+          backgroundColor: kDangerMuted,
         ),
       );
       return;
@@ -217,7 +302,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Lütfen en az bir ürün seçin!'),
-          backgroundColor: Colors.red,
+          backgroundColor: kDangerMuted,
         ),
       );
       return;
@@ -257,7 +342,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$kisi için satış kaydedildi!'),
-        backgroundColor: Colors.green,
+        backgroundColor: kInk,
       ),
     );
   }
@@ -333,7 +418,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
               _verileriKaydet();
               Navigator.pop(ctx);
             },
-            child: const Text('Ürünü Sil', style: TextStyle(color: Colors.red)),
+            child: const Text('Ürünü Sil', style: TextStyle(color: kDangerMuted)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -402,33 +487,31 @@ class _AnaSayfaState extends State<AnaSayfa> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
+            Container(
+              padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
+              decoration: const BoxDecoration(
+                color: kSurface,
+                border: Border(bottom: BorderSide(color: kBorder)),
               ),
-              child: Column(
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.storefront,
-                    size: 48,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                  const SizedBox(height: 12),
+                  Icon(Icons.storefront, size: 40, color: kInk),
+                  SizedBox(height: 12),
                   Text(
                     'Kantin Yönetimi',
                     style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: kInk,
                     ),
                   ),
                 ],
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.people),
+              leading: const Icon(Icons.people, color: kMuted),
               title: const Text('Kayıtlı Kişiler'),
               subtitle: Text('${_kayitliKisiler.length} kişi kayıtlı'),
               onTap: () async {
@@ -461,7 +544,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
                   labelText: 'Kişi Adı',
-                  prefixIcon: const Icon(Icons.person_outline),
+                  prefixIcon: const Icon(Icons.person_outline, color: kMuted),
                   suffixIcon: _kisiController.text.isNotEmpty
                       ? IconButton(
                           icon: const Icon(Icons.clear, size: 20),
@@ -472,9 +555,6 @@ class _AnaSayfaState extends State<AnaSayfa> {
                           },
                         )
                       : null,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 onChanged: (_) => setState(() {}),
               ),
@@ -497,11 +577,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
                           isim,
                           style: TextStyle(
                             fontWeight:
-                                secili ? FontWeight.bold : FontWeight.normal,
-                            color: secili ? Colors.white : null,
+                                secili ? FontWeight.w600 : FontWeight.normal,
+                            color: secili ? Colors.white : kInk,
                           ),
                         ),
-                        backgroundColor: secili ? Colors.teal : null,
+                        backgroundColor: secili ? kInk : Colors.white,
+                        side: BorderSide(color: secili ? kInk : kBorder),
                         onPressed: () {
                           setState(() {
                             _kisiController.text = isim;
@@ -521,18 +602,19 @@ class _AnaSayfaState extends State<AnaSayfa> {
                 children: [
                   const Text(
                     'Ürünler (Fiyat için basılı tutun):',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w500, fontSize: 13, color: kMuted),
                   ),
                   InkWell(
                     onTap: _yeniUrunDiyalogu,
                     child: const Row(
                       children: [
-                        Icon(Icons.add, color: Colors.teal, size: 18),
+                        Icon(Icons.add, color: kInk, size: 18),
                         Text(
                           'Ürün Ekle',
                           style: TextStyle(
-                            color: Colors.teal,
-                            fontWeight: FontWeight.bold,
+                            color: kInk,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -553,7 +635,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   final seciliMi = seciliAdet > 0;
 
                   return InkWell(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     onTap: () => _uruneTiklandi(urunAdi),
                     onLongPress: () =>
                         _urunGuncelleSilDiyalogu(urunAdi, fiyat),
@@ -561,15 +643,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: seciliMi
-                            ? Colors.teal.shade200.withOpacity(0.4)
-                            : Colors.grey.shade100,
+                        color: seciliMi ? kSurface : Colors.white,
                         border: Border.all(
-                          color: seciliMi
-                              ? Colors.teal
-                              : Colors.grey.shade400,
+                          color: seciliMi ? kInk : kBorder,
+                          width: seciliMi ? 1.3 : 1,
                         ),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -577,7 +656,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                           if (seciliMi) ...[
                             CircleAvatar(
                               radius: 9,
-                              backgroundColor: Colors.teal,
+                              backgroundColor: kInk,
                               child: Text(
                                 '$seciliAdet',
                                 style: const TextStyle(
@@ -588,8 +667,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
                           ],
                           Text(
                             '$urunAdi (${fiyat.toStringAsFixed(0)} ₺)',
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight:
+                                  seciliMi ? FontWeight.w600 : FontWeight.w500,
+                              color: kInk,
+                            ),
                           ),
                         ],
                       ),
@@ -604,7 +687,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
               if (_secilenUrunAdetleri.isNotEmpty) ...[
                 const Text(
                   'Seçilen Ürünler:',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
                 ..._secilenUrunAdetleri.entries.map((e) {
@@ -620,9 +703,9 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade300),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: kBorder),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,13 +717,17 @@ class _AnaSayfaState extends State<AnaSayfa> {
                               child: Text(
                                 '$urun (${fiyat.toStringAsFixed(0)} ₺)',
                                 style: const TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w500),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: kInk),
                               ),
                             ),
                             Text(
                               '${satirToplami.toStringAsFixed(0)} ₺',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 14),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: kInk),
                             ),
                           ],
                         ),
@@ -651,7 +738,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                             InkWell(
                               onTap: () => _adetAzalt(urun),
                               child: const Icon(Icons.remove_circle_outline,
-                                  color: Colors.red, size: 22),
+                                  color: kDangerMuted, size: 22),
                             ),
                             Padding(
                               padding:
@@ -659,13 +746,15 @@ class _AnaSayfaState extends State<AnaSayfa> {
                               child: Text(
                                 '$adet',
                                 style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 15),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                    color: kInk),
                               ),
                             ),
                             InkWell(
                               onTap: () => _adetArtir(urun),
                               child: const Icon(Icons.add_circle_outline,
-                                  color: Colors.teal, size: 22),
+                                  color: kInk, size: 22),
                             ),
                             const Spacer(),
                             // YANLIŞ ÜRÜNÜ DOĞRUSUYLA DEĞİŞTİR
@@ -691,7 +780,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 6),
                                 child: Icon(Icons.swap_horiz,
-                                    color: Colors.teal, size: 20),
+                                    color: kMuted, size: 20),
                               ),
                             ),
                             // ÜRÜNÜ KOMPLE SİL
@@ -700,7 +789,7 @@ class _AnaSayfaState extends State<AnaSayfa> {
                               child: const Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 6),
                                 child: Icon(Icons.delete_outline,
-                                    color: Colors.red, size: 20),
+                                    color: kDangerMuted, size: 20),
                               ),
                             ),
                           ],
@@ -716,19 +805,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal.shade700,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
                     onPressed: _satisiKaydet,
                     icon: const Icon(Icons.check_circle_outline),
                     label: Text(
                       'KAYDET (Toplam: ${_toplamTutar.toStringAsFixed(0)} TL)',
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
+                          fontWeight: FontWeight.w600, fontSize: 15),
                     ),
                   ),
                 ),
@@ -739,11 +821,12 @@ class _AnaSayfaState extends State<AnaSayfa> {
               // SON KAYDEDİLENLER BÖLÜMÜ
               const Text(
                 'Son Kaydedilenler',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
               ),
               const SizedBox(height: 8),
               if (_fisler.isEmpty)
-                const Text('Henüz kaydedilmiş bir fiş yok.')
+                const Text('Henüz kaydedilmiş bir fiş yok.',
+                    style: TextStyle(color: kMuted))
               else
                 ..._fisler.take(3).map((f) {
                   final List uList = f['urunler'] ?? [];
@@ -751,13 +834,15 @@ class _AnaSayfaState extends State<AnaSayfa> {
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     child: ListTile(
                       dense: true,
-                      leading: const Icon(Icons.receipt, color: Colors.teal),
+                      leading: const Icon(Icons.receipt, color: kMuted),
                       title: Text(
                         "${f['kisi']} - ${(f['toplam'] as num).toStringAsFixed(0)} TL",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, color: kInk),
                       ),
                       subtitle: Text(
                         "${f['tarih']} (${uList.length} çeşit ürün)",
+                        style: const TextStyle(color: kMuted),
                       ),
                     ),
                   );
@@ -846,37 +931,42 @@ class _AySonuMuhasebeSayfasiState extends State<AySonuMuhasebeSayfasi> {
         ],
       ),
       body: kisiler.isEmpty
-          ? const Center(child: Text('Henüz satış kaydı bulunmuyor.'))
+          ? const Center(
+              child: Text('Henüz satış kaydı bulunmuyor.',
+                  style: TextStyle(color: kMuted)))
           : Column(
               children: [
                 Expanded(
                   child: ListView.separated(
                     itemCount: kisiler.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: kBorder),
                     itemBuilder: (context, index) {
                       final kisi = kisiler[index];
                       final borc = toplamlar[kisi] ?? 0;
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: Colors.teal.shade100,
-                          foregroundColor: Colors.teal.shade900,
+                          backgroundColor: kSurface,
+                          foregroundColor: kInk,
                           child: Text('${index + 1}'),
                         ),
                         title: Text(
                           kisi,
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                              color: kInk),
                         ),
                         subtitle: const Text(
                           'Detay dökümü gör →',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(fontSize: 12, color: kMuted),
                         ),
                         trailing: Text(
                           '${borc.toStringAsFixed(0)} TL',
                           style: const TextStyle(
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal,
+                            fontWeight: FontWeight.w600,
+                            color: kInk,
                           ),
                         ),
                         onTap: () async {
@@ -903,21 +993,26 @@ class _AySonuMuhasebeSayfasiState extends State<AySonuMuhasebeSayfasi> {
                 Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  color: Colors.teal.shade100.withOpacity(0.5),
+                  decoration: const BoxDecoration(
+                    color: kSurface,
+                    border: Border(top: BorderSide(color: kBorder)),
+                  ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
                         'GENEL TOPLAM:',
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 15),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 15,
+                            color: kInk),
                       ),
                       Text(
                         '${genelToplam.toStringAsFixed(0)} TL',
                         style: const TextStyle(
                           fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.teal,
+                          fontWeight: FontWeight.w700,
+                          color: kInk,
                         ),
                       ),
                     ],
@@ -965,7 +1060,7 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
         return StatefulBuilder(
@@ -991,10 +1086,13 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                       Text(
                         'Fişi Düzenle (${fis['tarih']})',
                         style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: kInk),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_forever, color: Colors.red),
+                        icon: const Icon(Icons.delete_forever,
+                            color: kDangerMuted),
                         tooltip: 'Tüm Fişi Sil',
                         onPressed: () {
                           setState(() {
@@ -1007,7 +1105,7 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                       ),
                     ],
                   ),
-                  const Divider(),
+                  const Divider(color: kBorder),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 280),
                     child: ListView.builder(
@@ -1029,19 +1127,21 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                                       Text(
                                         u['ad'],
                                         style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
+                                            fontWeight: FontWeight.w600,
+                                            color: kInk),
                                       ),
                                       Text(
                                         'Birim: ${(u['fiyat'] as num).toStringAsFixed(0)} ₺  |  Toplam: ${((u['fiyat'] as num) * (u['adet'] as num)).toStringAsFixed(0)} ₺',
                                         style: const TextStyle(
-                                            fontSize: 12, color: Colors.grey),
+                                            fontSize: 12, color: kMuted),
                                       ),
                                     ],
                                   ),
                                 ),
                                 // Adet Azalt
                                 IconButton(
-                                  icon: const Icon(Icons.remove_circle_outline),
+                                  icon: const Icon(Icons.remove_circle_outline,
+                                      color: kDangerMuted),
                                   onPressed: () {
                                     setModalState(() {
                                       if ((u['adet'] as int) > 1) {
@@ -1059,11 +1159,13 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                                 Text(
                                   '${u['adet']}',
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.bold),
+                                      fontWeight: FontWeight.w600,
+                                      color: kInk),
                                 ),
                                 // Adet Artır
                                 IconButton(
-                                  icon: const Icon(Icons.add_circle_outline),
+                                  icon: const Icon(Icons.add_circle_outline,
+                                      color: kInk),
                                   onPressed: () {
                                     setModalState(() {
                                       u['adet'] += 1;
@@ -1076,7 +1178,7 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                                 // Başka Ürünle Değiştir
                                 PopupMenuButton<String>(
                                   icon: const Icon(Icons.swap_horiz,
-                                      color: Colors.teal),
+                                      color: kMuted),
                                   tooltip: 'Ürünü Değiştir',
                                   onSelected: (yeniUrun) {
                                     final yeniFiyat =
@@ -1103,7 +1205,7 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                                 // Ürünü Sil
                                 IconButton(
                                   icon: const Icon(Icons.delete_outline,
-                                      color: Colors.red),
+                                      color: kDangerMuted),
                                   onPressed: () {
                                     setModalState(() {
                                       urunlerList.removeAt(idx);
@@ -1129,8 +1231,8 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                         'Güncel Fiş: ${(fis['toplam'] as num).toStringAsFixed(0)} TL',
                         style: const TextStyle(
                             fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal),
+                            fontWeight: FontWeight.w600,
+                            color: kInk),
                       ),
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx),
@@ -1174,20 +1276,24 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            color: Colors.teal.shade50,
+            decoration: const BoxDecoration(
+              color: kSurface,
+              border: Border(bottom: BorderSide(color: kBorder)),
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'Toplam Borç:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w600, color: kInk),
                 ),
                 Text(
                   '${_toplamBorc.toStringAsFixed(0)} TL',
                   style: const TextStyle(
                     fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
+                    fontWeight: FontWeight.w700,
+                    color: kInk,
                   ),
                 ),
               ],
@@ -1195,20 +1301,23 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
           ),
           Expanded(
             child: fisler.isEmpty
-                ? const Center(child: Text('Bu kişiye ait fiş kalmadı.'))
+                ? const Center(
+                    child: Text('Bu kişiye ait fiş kalmadı.',
+                        style: TextStyle(color: kMuted)))
                 : ListView.separated(
                     itemCount: fisler.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: kBorder),
                     itemBuilder: (context, index) {
                       final fis = fisler[index];
                       final urunlerList = (fis['urunler'] as List)
                           .cast<Map<String, dynamic>>();
 
                       return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Colors.teal.shade100,
-                          child: const Icon(Icons.shopping_bag_outlined,
-                              color: Colors.teal),
+                        leading: const CircleAvatar(
+                          backgroundColor: kSurface,
+                          child: Icon(Icons.shopping_bag_outlined,
+                              color: kMuted),
                         ),
                         title: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1216,13 +1325,14 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                             ...urunlerList.map((u) => Text(
                                   "${u['adet']}x ${u['ad']} (${(u['fiyat'] as num).toStringAsFixed(0)} ₺)",
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.w500),
+                                      fontWeight: FontWeight.w500,
+                                      color: kInk),
                                 )),
                             const SizedBox(height: 4),
                             Text(
                               "Tarih: ${fis['tarih']}",
                               style: const TextStyle(
-                                  fontSize: 12, color: Colors.grey),
+                                  fontSize: 12, color: kMuted),
                             ),
                           ],
                         ),
@@ -1232,11 +1342,12 @@ class _DetayDokumSayfasiState extends State<DetayDokumSayfasi> {
                             Text(
                               '${(fis['toplam'] as num).toStringAsFixed(0)} ₺',
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                  color: kInk),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.edit_note,
-                                  color: Colors.teal),
+                              icon: const Icon(Icons.edit_note, color: kMuted),
                               tooltip: 'Düzenle / Değiştir / Sil',
                               onPressed: () => _fisDuzenleModal(fis),
                             ),
@@ -1318,18 +1429,26 @@ class _KisilerSayfasiState extends State<KisilerSayfasi> {
         ],
       ),
       body: widget.kayitliKisiler.isEmpty
-          ? const Center(child: Text('Kayıtlı kişi bulunmuyor.'))
+          ? const Center(
+              child: Text('Kayıtlı kişi bulunmuyor.',
+                  style: TextStyle(color: kMuted)))
           : ListView.separated(
               itemCount: widget.kayitliKisiler.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: kBorder),
               itemBuilder: (context, index) {
                 final isim = widget.kayitliKisiler[index];
                 return ListTile(
-                  leading: const CircleAvatar(child: Icon(Icons.person)),
+                  leading: const CircleAvatar(
+                    backgroundColor: kSurface,
+                    child: Icon(Icons.person, color: kMuted),
+                  ),
                   title: Text(isim,
-                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, color: kInk)),
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    icon: const Icon(Icons.delete_outline,
+                        color: kDangerMuted),
                     onPressed: () {
                       widget.onKisiSil(isim);
                       setState(() {});
